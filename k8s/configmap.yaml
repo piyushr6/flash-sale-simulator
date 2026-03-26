@@ -1,0 +1,19 @@
+---
+# ── ConfigMap: shared configuration ─────────────────────────────
+# This stores non-secret config that multiple pods can reference.
+# In the demo, it documents the NodePort URLs for the audience.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flash-sale-config
+data:
+  # These are the NodePort values used in k8s/*.yaml
+  # Access via: minikube ip → replace <MINIKUBE_IP> below
+  frontend_nodeport:      "30080"
+  order_api_nodeport:     "30000"
+  redis_commander_port:   "30081"
+  phpmyadmin_port:        "30082"
+  redis_host:             "redis"
+  redis_port:             "6379"
+  mysql_host:             "mysql"
+  mysql_db:               "flashsale"

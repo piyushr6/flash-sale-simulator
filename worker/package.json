@@ -1,0 +1,13 @@
+{
+  "name": "flash-sale-worker",
+  "version": "1.0.0",
+  "description": "Flash Sale Queue Worker - Redis → MySQL",
+  "main": "worker.js",
+  "scripts": {
+    "start": "node worker.js"
+  },
+  "dependencies": {
+    "redis": "^4.6.7",
+    "mysql2": "^3.6.1"
+  }
+}

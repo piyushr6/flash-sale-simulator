@@ -1,0 +1,74 @@
+---
+# ── Order API Deployment (3 replicas → demonstrates load balancing) ──
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-api
+  labels:
+    app: order-api
+spec:
+  replicas: 3          # ← 3 pods = visible load balancing in demo
+  selector:
+    matchLabels:
+      app: order-api
+  template:
+    metadata:
+      labels:
+        app: order-api
+    spec:
+      containers:
+        - name: order-api
+          image: order-api:latest
+          imagePullPolicy: Never    # use locally built image (minikube)
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: REDIS_URL
+              value: "redis://redis:6379"
+            # Expose pod name for "handledBy" field in responses
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu:    "100m"
+            limits:
+              memory: "256Mi"
+              cpu:    "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+
+---
+# ── Order API Service (NodePort — accessible from host) ──────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-api-service
+  labels:
+    app: order-api
+spec:
+  selector:
+    app: order-api
+  ports:
+    - name:       http
+      port:       3000
+      targetPort: 3000
+      nodePort:   30000
+  type: NodePort
+  # Kubernetes will round-robin requests across the 3 pods automatically

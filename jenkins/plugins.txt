@@ -1,0 +1,26 @@
+# Jenkins plugins for Flash Sale CI/CD demo
+# Format: plugin-id:version  (or just plugin-id for latest compatible)
+# Managed by jenkins-plugin-cli (comes with jenkins/jenkins:lts image)
+
+# ── Core pipeline ─────────────────────────────────────────────────
+workflow-aggregator:latest
+pipeline-stage-view:latest
+pipeline-graph-analysis:latest
+
+# ── Git integration ───────────────────────────────────────────────
+git:latest
+github:latest
+
+# ── Docker ────────────────────────────────────────────────────────
+docker-workflow:latest
+docker-plugin:latest
+docker-commons:latest
+
+# ── Kubernetes CLI ────────────────────────────────────────────────
+kubernetes-cli:latest
+
+# ── UI & usability ────────────────────────────────────────────────
+blueocean:latest
+timestamper:latest
+ansicolor:latest
+build-monitor-plugin:latest

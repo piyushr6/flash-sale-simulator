@@ -1,0 +1,163 @@
+version: "3.9"
+
+networks:
+  flash-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
+
+services:
+
+  # ── MySQL ──────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: flash-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE:      flashsale
+      MYSQL_USER:          flashuser
+      MYSQL_PASSWORD:      flashpass
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - flash-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "flashuser", "-pflashpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  # ── Redis ──────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: flash-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - flash-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Order API ─────────────────────────────────────────────────
+  # NOTE: scale this with --scale order-api=3 on the CLI
+  # (do NOT use deploy.replicas here — that is Swarm-only and
+  #  conflicts with --scale in plain Compose)
+  order-api:
+    build:
+      context: ./order-api
+      dockerfile: Dockerfile
+    image: order-api:latest
+    restart: unless-stopped
+    environment:
+      PORT:       3000
+      REDIS_URL:  redis://redis:6379
+      MYSQL_HOST: mysql
+      MYSQL_USER: flashuser
+      MYSQL_PASS: flashpass
+      MYSQL_DB:   flashsale
+    volumes:
+      # Mount Docker socket so /stats can query container info
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - flash-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── Nginx load balancer for API ───────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: flash-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx-lb.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "3000:80"
+    networks:
+      - flash-net
+    depends_on:
+      - order-api
+
+  # ── Worker ────────────────────────────────────────────────────
+  # Scale with --scale worker=2 on the CLI
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    image: worker:latest
+    restart: unless-stopped
+    environment:
+      REDIS_URL:   redis://redis:6379
+      MYSQL_HOST:  mysql
+      MYSQL_PORT:  3306
+      MYSQL_USER:  flashuser
+      MYSQL_PASS:  flashpass
+      MYSQL_DB:    flashsale
+    networks:
+      - flash-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+
+  # ── Frontend ──────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: frontend:latest
+    container_name: flash-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - flash-net
+
+  # ── Redis Commander ────────────────────────────────────────────
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: flash-redis-ui
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - flash-net
+    depends_on:
+      - redis
+
+  # ── phpMyAdmin ────────────────────────────────────────────────
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: flash-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST:     mysql
+      PMA_USER:     flashuser
+      PMA_PASSWORD: flashpass
+      PMA_PORT:     3306
+    ports:
+      - "8082:80"
+    networks:
+      - flash-net
+    depends_on:
+      mysql:
+        condition: service_healthy

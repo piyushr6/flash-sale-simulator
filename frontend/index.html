@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopFast – Flash Sale</title>
+  <style>
+    /* ── Reset & base ───────────────────────────────────────── */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f3f3;
+      color: #111;
+      font-size: 14px;
+    }
+
+    a {
+      color: #c45500;
+      text-decoration: none;
+    }
+
+    /* ── Top navbar ─────────────────────────────────────────── */
+    .navbar {
+      background: #131921;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      font-size: 22px;
+      font-weight: 900;
+      color: #ff9900;
+      letter-spacing: -1px;
+      border: 2px solid #ff9900;
+      padding: 2px 10px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .nav-tagline {
+      font-size: 11px;
+      color: #ccc;
+      margin-top: 2px;
+    }
+
+    .nav-spacer {
+      flex: 1;
+    }
+
+    .nav-badge {
+      background: #ff9900;
+      color: #111;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Flash sale banner ──────────────────────────────────── */
+    .flash-banner {
+      background: linear-gradient(90deg, #cc0c39, #e31837);
+      color: #fff;
+      text-align: center;
+      padding: 6px;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .flash-banner span {
+      color: #ffd700;
+    }
+
+    /* ── Main layout ────────────────────────────────────────── */
+    .page-wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 16px;
+    }
+
+    /* ── Product card (left) ────────────────────────────────── */
+    .product-card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 16px;
+    }
+
+    .breadcrumb {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 10px;
+    }
+
+    .product-img-wrap {
+      background: #f9f9f9;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      margin-bottom: 14px;
+      font-size: 64px;
+    }
+
+    .product-title {
+      font-size: 17px;
+      font-weight: bold;
+      line-height: 1.3;
+      margin-bottom: 6px;
+      color: #0f1111;
+    }
+
+    .product-brand {
+      color: #c45500;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .rating-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .stars {
+      color: #f90;
+      font-size: 15px;
+      letter-spacing: -1px;
+    }
+
+    .rating-count {
+      color: #c45500;
+      font-size: 13px;
+    }
+
+    .price-box {
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+      margin-bottom: 10px;
+    }
+
+    .price-strike {
+      text-decoration: line-through;
+      color: #888;
+      font-size: 13px;
+    }
+
+    .price-deal {
+      font-size: 28px;
+      font-weight: bold;
+      color: #B12704;
+    }
+
+    .price-save {
+      font-size: 13px;
+      color: #007600;
+      font-weight: bold;
+    }
+
+    .deal-badge {
+      display: inline-block;
+      background: #cc0c39;
+      color: #fff;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 2px 8px;
+      border-radius: 3px;
+      margin-bottom: 8px;
+    }
+
+    .stock-warn {
+      color: #cc0c39;
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    /* countdown */
+    .countdown-box {
+      background: #fff8e7;
+      border: 1px solid #f0ad00;
+      border-radius: 4px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .countdown-label {
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 4px;
+    }
+
+    .countdown-digits {
+      font-size: 36px;
+      font-weight: bold;
+      color: #B12704;
+      letter-spacing: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .countdown-digits.urgent {
+      color: #cc0c39;
+      animation: pulse 0.5s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0.5;
+      }
+    }
+
+    /* live badge */
+    #live-badge {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #cc0c39;
+      color: #fff;
+      border-radius: 4px;
+      padding: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    #live-badge .dot {
+      width: 8px;
+      height: 8px;
+      background: #fff;
+      border-radius: 50%;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.2;
+      }
+    }
+
+    /* buy button */
+    #fire-btn {
+      display: none;
+      width: 100%;
+      background: #ff9900;
+      border: 1px solid #e47911;
+      border-radius: 20px;
+      padding: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      color: #111;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-bottom: 8px;
+    }
+
+    #fire-btn:hover:not(:disabled) {
+      background: #e88c00;
+    }
+
+    #fire-btn:disabled {
+      background: #ccc;
+      border-color: #bbb;
+      cursor: not-allowed;
+    }
+
+    .buy-sub {
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+    }
+
+    /* prime */
+    .prime-row {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .prime-logo {
+      color: #00a8cc;
+      font-weight: bold;
+      font-size: 13px;
+    }
+
+    /* ── RIGHT COLUMN ────────────────────────────────────────── */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── Section card ────────────────────────────────────────── */
+    .section-card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .section-head {
+      background: #232f3e;
+      color: #fff;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      letter-spacing: 0.3px;
+    }
+
+    .section-head .live-dot {
+      width: 7px;
+      height: 7px;
+      background: #00e676;
+      border-radius: 50%;
+      animation: blink 1.5s infinite;
+      margin-right: 6px;
+    }
+
+    .section-head-left {
+      display: flex;
+      align-items: center;
+    }
+
+    .section-body {
+      padding: 12px 14px;
+    }
+
+    /* ── Stats strip ─────────────────────────────────────────── */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: #ddd;
+    }
+
+    .stat-cell {
+      background: #fff;
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 22px;
+      font-weight: bold;
+      color: #B12704;
+      font-family: 'Courier New', monospace;
+    }
+
+    .stat-num.green {
+      color: #007600;
+    }
+
+    .stat-num.blue {
+      color: #0066c0;
+    }
+
+    .stat-num.orange {
+      color: #c45500;
+    }
+
+    .stat-lbl {
+      font-size: 11px;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    /* ── Progress bar ────────────────────────────────────────── */
+    .progress-wrap {
+      background: #eee;
+      height: 10px;
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 8px 0 4px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #cc0c39, #ff9900);
+      width: 0%;
+      transition: width 0.15s linear;
+    }
+
+    .progress-lbl {
+      font-size: 12px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ── Log box ─────────────────────────────────────────────── */
+    .log-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: #f8f8f8;
+      border-bottom: 1px solid #eee;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .log-toolbar .lbl {
+      font-weight: bold;
+      color: #333;
+    }
+
+    .log-toolbar .spacer {
+      flex: 1;
+    }
+
+    .log-toolbar .counter {
+      background: #eee;
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-family: monospace;
+    }
+
+    .log-toolbar .counter.ok {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .log-toolbar .counter.err {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .log-toolbar button {
+      border: 1px solid #ccc;
+      background: #fff;
+      border-radius: 3px;
+      padding: 2px 8px;
+      cursor: pointer;
+      font-size: 11px;
+      color: #444;
+    }
+
+    .log-toolbar button:hover {
+      background: #f0f0f0;
+    }
+
+    .log-toolbar button.active {
+      background: #fff3cd;
+      border-color: #ffc107;
+      color: #333;
+    }
+
+    #log-box {
+      height: 260px;
+      overflow-y: auto;
+      padding: 6px 14px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      background: #0d1117;
+    }
+
+    #log-box::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    #log-box::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 3px;
+    }
+
+    .log-line {
+      display: flex;
+      gap: 8px;
+      animation: fadein 0.15s ease;
+    }
+
+    @keyframes fadein {
+      from {
+        opacity: 0;
+        transform: translateX(-4px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .log-ts {
+      color: #586069;
+      flex-shrink: 0;
+      width: 86px;
+    }
+
+    .log-pod {
+      color: #79b8ff;
+      flex-shrink: 0;
+      width: 190px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .log-msg {
+      color: #e6edf3;
+      flex: 1;
+    }
+
+    .log-line.ok .log-msg {
+      color: #3fb950;
+    }
+
+    .log-line.err .log-msg {
+      color: #f85149;
+    }
+
+    .log-line.warn .log-msg {
+      color: #d29922;
+    }
+
+    .log-line.info .log-msg {
+      color: #79b8ff;
+    }
+
+    .log-pods-bar {
+      padding: 5px 14px;
+      background: #161b22;
+      font-size: 11px;
+      color: #586069;
+      font-family: 'Courier New', monospace;
+      border-top: 1px solid #21262d;
+    }
+
+    .log-pods-bar span {
+      color: #79b8ff;
+    }
+
+    /* ── Dashboard grid ──────────────────────────────────────── */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* ── Mini metrics card ───────────────────────────────────── */
+    .metric-card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .metric-head {
+      background: #f0f0f0;
+      border-bottom: 1px solid #ddd;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .metric-body {
+      padding: 10px 12px;
+    }
+
+    /* Redis gauge */
+    .redis-gauge {
+      text-align: center;
+    }
+
+    .gauge-num {
+      font-size: 36px;
+      font-weight: bold;
+      color: #d9534f;
+      font-family: 'Courier New', monospace;
+    }
+
+    .gauge-sub {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .gauge-bar-wrap {
+      background: #eee;
+      height: 6px;
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 6px 0 4px;
+    }
+
+    .gauge-bar-fill {
+      height: 100%;
+      background: #d9534f;
+      transition: width 0.4s ease;
+      border-radius: 3px;
+    }
+
+    /* DB table mini */
+    .db-mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .db-mini-table th {
+      background: #f0f0f0;
+      padding: 4px 8px;
+      text-align: left;
+      font-weight: bold;
+      border-bottom: 1px solid #ddd;
+      color: #444;
+    }
+
+    .db-mini-table td {
+      padding: 4px 8px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .db-mini-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .db-total-row {
+      font-size: 24px;
+      font-weight: bold;
+      color: #007600;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* Container list */
+    .container-list {
+      list-style: none;
+    }
+
+    .container-list li {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 0;
+      border-bottom: 1px solid #f5f5f5;
+      font-size: 12px;
+    }
+
+    .container-list li:last-child {
+      border-bottom: none;
+    }
+
+    .c-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .c-dot.running {
+      background: #28a745;
+    }
+
+    .c-dot.stopped {
+      background: #dc3545;
+    }
+
+    .c-name {
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      color: #333;
+      flex: 1;
+      font-size: 11px;
+    }
+
+    .c-status {
+      color: #777;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    /* Architecture flow */
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+      padding: 6px 0;
+    }
+
+    .arch-node {
+      background: #f8f9fa;
+      border: 2px solid #dee2e6;
+      border-radius: 6px;
+      padding: 8px 10px;
+      text-align: center;
+      min-width: 70px;
+      transition: border-color 0.3s, background 0.3s;
+    }
+
+    .arch-node.lit {
+      border-color: #cc0c39;
+      background: #fff5f5;
+    }
+
+    .arch-node .aicon {
+      font-size: 18px;
+    }
+
+    .arch-node .aname {
+      font-size: 10px;
+      color: #666;
+      margin-top: 2px;
+      font-weight: bold;
+    }
+
+    .arch-arrow {
+      color: #ccc;
+      padding: 0 4px;
+      font-size: 16px;
+      transition: color 0.3s;
+    }
+
+    .arch-arrow.lit {
+      color: #cc0c39;
+    }
+
+    /* ── Links bar ───────────────────────────────────────────── */
+    .links-bar {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 12px 14px;
+    }
+
+    .links-bar h3 {
+      font-size: 13px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .links-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      border: 1px solid;
+      transition: opacity 0.15s;
+    }
+
+    .link-btn:hover {
+      opacity: 0.85;
+    }
+
+    .link-btn.redis {
+      background: #fff0f0;
+      border-color: #d9534f;
+      color: #d9534f;
+    }
+
+    .link-btn.db {
+      background: #f0fff4;
+      border-color: #28a745;
+      color: #28a745;
+    }
+
+    .link-btn.jenkins {
+      background: #fff8f0;
+      border-color: #c45500;
+      color: #c45500;
+    }
+
+    .link-btn.api {
+      background: #f0f4ff;
+      border-color: #0066c0;
+      color: #0066c0;
+    }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    .page-footer {
+      background: #131921;
+      color: #999;
+      text-align: center;
+      padding: 12px;
+      font-size: 12px;
+      margin-top: 16px;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────── */
+    @media(max-width:900px) {
+      .page-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .dash-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-strip {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Navbar ──────────────────────────────────────────────── -->
+  <nav class="navbar">
+    <div>
+      <div class="nav-logo">ShopFast</div>
+      <div class="nav-tagline">DevOps Demo Store</div>
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-badge">⚡ Flash Sale Live</div>
+  </nav>
+
+  <!-- ── Flash banner ────────────────────────────────────────── -->
+  <div class="flash-banner">
+    ⚡ Today's Flash Sale — Up to <span>74% OFF</span> on select electronics. Limited stock!
+  </div>
+
+  <!-- ── Main page ───────────────────────────────────────────── -->
+  <div class="page-wrap">
+
+    <!-- LEFT: Product + buy box -->
+    <div>
+      <div class="product-card">
+        <div class="breadcrumb">Electronics › Headphones › Sony</div>
+
+        <div class="product-img-wrap">🎧</div>
+
+        <div class="product-title">Sony WH-1000XM5 Wireless Industry Leading Noise Cancelling Headphones</div>
+        <div class="product-brand">by <a href="#">Sony</a></div>
+
+        <div class="rating-row">
+          <span class="stars">★★★★½</span>
+          <a href="#" class="rating-count">12,847 ratings</a>
+        </div>
+
+        <div class="price-box">
+          <div class="deal-badge">⚡ FLASH DEAL</div>
+          <div class="price-strike">M.R.P.: ₹34,990</div>
+          <div class="price-deal">₹8,999</div>
+          <div class="price-save">You save: ₹25,991 (74%)</div>
+        </div>
+
+        <div class="stock-warn">⚠ Only 50 units left — 500 users waiting!</div>
+
+        <!-- Countdown -->
+        <div class="countdown-box" id="countdown-section">
+          <div class="countdown-label">Flash sale starts in</div>
+          <div class="countdown-digits" id="countdown">10</div>
+        </div>
+
+        <!-- Live badge -->
+        <div id="live-badge">
+          <div class="dot"></div>
+          FLASH SALE IS LIVE
+        </div>
+
+        <!-- Buy button -->
+        <button id="fire-btn" onclick="startFlashSale()">
+          🛒 Simulate 500 Orders Now
+        </button>
+        <div class="buy-sub">Simulates 500 simultaneous purchase requests</div>
+
+        <div class="prime-row">
+          <span class="prime-logo">prime</span> FREE delivery on eligible orders
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Dashboard -->
+    <div class="right-col">
+
+      <!-- Stats strip -->
+      <div class="section-card">
+        <div class="section-head">
+          <div class="section-head-left"><span class="live-dot"></span>ORDER PIPELINE — LIVE</div>
+          <span id="elapsed-lbl" style="font-size:11px;color:#aaa;font-weight:normal;"></span>
+        </div>
+        <div class="stats-strip">
+          <div class="stat-cell">
+            <div class="stat-num" id="stat-sent">0</div>
+            <div class="stat-lbl">Sent</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-num green" id="stat-success">0</div>
+            <div class="stat-lbl">Queued ✓</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-num orange" id="stat-rps">0</div>
+            <div class="stat-lbl">Req/sec</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-num blue" id="stat-fail">0</div>
+            <div class="stat-lbl">Failed ✗</div>
+          </div>
+        </div>
+        <div class="section-body" style="padding-top:8px;padding-bottom:10px;">
+          <div class="progress-lbl">
+            <span id="progress-label">Waiting for sale to start...</span>
+            <span id="progress-pct">0%</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Request log -->
+      <div class="section-card">
+        <div class="section-head">
+          <div class="section-head-left"><span class="live-dot"></span>LIVE REQUEST LOG</div>
+          <div style="display:flex;gap:6px;">
+            <button id="scroll-btn" class="log-toolbar"
+              style="background:#fff3;border:1px solid #555;color:#ccc;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;"
+              onclick="toggleScroll()">⬇ AUTO</button>
+            <button
+              style="background:#fff3;border:1px solid #555;color:#ccc;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;"
+              onclick="clearLog()">CLEAR</button>
+          </div>
+        </div>
+        <div class="log-toolbar">
+          <span class="lbl">Log</span>
+          <span class="counter ok">✓ <span id="ok-count">0</span></span>
+          <span class="counter err">✗ <span id="err-count">0</span></span>
+          <span class="spacer"></span>
+          <span style="color:#888;">Pods seen:</span>
+          <span id="pods-seen" style="font-family:monospace;color:#333;">—</span>
+        </div>
+        <div id="log-box"></div>
+        <div class="log-pods-bar" id="pods-bar">Pods: <span>waiting...</span></div>
+      </div>
+
+      <!-- Dashboard grid -->
+      <div class="dash-grid">
+
+        <!-- Redis queue depth -->
+        <div class="metric-card">
+          <div class="metric-head">🗄 Redis Queue <span
+              style="margin-left:auto;font-size:10px;color:#888;font-weight:normal;" id="redis-ts"></span></div>
+          <div class="metric-body redis-gauge">
+            <div class="gauge-num" id="redis-depth">—</div>
+            <div class="gauge-bar-wrap">
+              <div class="gauge-bar-fill" id="redis-bar" style="width:0%"></div>
+            </div>
+            <div class="gauge-sub">orders pending in queue</div>
+          </div>
+        </div>
+
+        <!-- MySQL row count -->
+        <div class="metric-card">
+          <div class="metric-head">🗃 MySQL — orders table <span
+              style="margin-left:auto;font-size:10px;color:#888;font-weight:normal;" id="db-ts"></span></div>
+          <div class="metric-body">
+            <div class="db-total-row" id="db-count">—</div>
+            <div style="font-size:11px;color:#888;margin-bottom:8px;">total rows inserted</div>
+            <table class="db-mini-table">
+              <thead>
+                <tr>
+                  <th>API Pod</th>
+                  <th>Orders</th>
+                </tr>
+              </thead>
+              <tbody id="db-by-pod">
+                <tr>
+                  <td colspan="2" style="color:#bbb;">waiting...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Architecture flow -->
+        <div class="metric-card">
+          <div class="metric-head">📐 System Flow</div>
+          <div class="metric-body">
+            <div class="arch-flow">
+              <div class="arch-node" id="arch-frontend">
+                <div class="aicon">🌐</div>
+                <div class="aname">Browser</div>
+              </div>
+              <div class="arch-arrow" id="arr-1">→</div>
+              <div class="arch-node" id="arch-api">
+                <div class="aicon">⚙️</div>
+                <div class="aname">API ×3</div>
+              </div>
+              <div class="arch-arrow" id="arr-2">→</div>
+              <div class="arch-node" id="arch-redis">
+                <div class="aicon">🗄</div>
+                <div class="aname">Redis</div>
+              </div>
+              <div class="arch-arrow" id="arr-3">→</div>
+              <div class="arch-node" id="arch-worker">
+                <div class="aicon">🔧</div>
+                <div class="aname">Worker ×2</div>
+              </div>
+              <div class="arch-arrow" id="arr-4">→</div>
+              <div class="arch-node" id="arch-mysql">
+                <div class="aicon">🗃</div>
+                <div class="aname">MySQL</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Docker containers -->
+        <div class="metric-card">
+          <div class="metric-head">🐳 Docker Containers <span
+              style="margin-left:auto;font-size:10px;color:#888;font-weight:normal;" id="docker-ts"></span></div>
+          <div class="metric-body" style="padding:6px 12px;">
+            <ul class="container-list" id="container-list">
+              <li style="color:#bbb;font-size:12px;">Loading...</li>
+            </ul>
+          </div>
+        </div>
+
+      </div><!-- end dash-grid -->
+
+      <!-- Quick-open links -->
+      <div class="links-bar">
+        <h3>🔗 Open Monitoring Dashboards</h3>
+        <div class="links-grid">
+          <a class="link-btn redis" href="http://localhost:8081" target="_blank">🗄 Redis Commander</a>
+          <a class="link-btn db" href="http://localhost:8082" target="_blank">🗃 phpMyAdmin</a>
+          <a class="link-btn jenkins" href="http://localhost:8090" target="_blank">🔧 Jenkins CI/CD</a>
+          <a class="link-btn api" href="http://localhost:3000/health" target="_blank">⚙ API Health</a>
+          <a class="link-btn api" href="http://localhost:3000/stats" target="_blank">📊 API Stats JSON</a>
+          <a class="link-btn api" href="http://localhost:3000/logs" target="_blank">📋 API Logs JSON</a>
+        </div>
+      </div>
+
+    </div><!-- end right-col -->
+  </div><!-- end page-wrap -->
+
+  <div class="page-footer">
+    Flash Sale Order Simulator · DevOps Demo ·
+    API: <span id="api-url-footer">http://localhost:3000</span> ·
+    <span id="footer-status">Waiting for sale...</span>
+  </div>
+
+  <script>
+    // ── CONFIG ────────────────────────────────────────────────────
+    const TOTAL_ORDERS = 500;
+    const BATCH_SIZE = 25;
+    const BATCH_DELAY_MS = 80;
+    const API_URL = window.API_URL || 'http://localhost:3000';
+    const STATS_INTERVAL = 1500;   // ms between dashboard polls
+    const MAX_REDIS_SHOW = 500;    // for gauge bar %
+
+    document.getElementById('api-url-footer').textContent = API_URL;
+
+    // ── STATE ─────────────────────────────────────────────────────
+    let sent = 0, success = 0, failed = 0;
+    let saleRunning = false;
+    let startTime = null;
+    let rpsInterval = null;
+    let statsTimer = null;
+    let autoScroll = true;
+    let okCount = 0;
+    let errCount = 0;
+    const seenPods = new Set();
+
+    // ── ELEMENTS ──────────────────────────────────────────────────
+    const logBox = document.getElementById('log-box');
+    const fireBtn = document.getElementById('fire-btn');
+    const liveBadge = document.getElementById('live-badge');
+    const cdSection = document.getElementById('countdown-section');
+    const cdEl = document.getElementById('countdown');
+
+    // ── COUNTDOWN ─────────────────────────────────────────────────
+    let cdVal = 10;
+    function tick() {
+      cdVal--;
+      cdEl.textContent = cdVal;
+      if (cdVal <= 3) cdEl.classList.add('urgent');
+      if (cdVal <= 0) {
+        clearInterval(timerID);
+        cdSection.style.display = 'none';
+        liveBadge.style.display = 'flex';
+        fireBtn.style.display = 'block';
+        appendLog('info', null, '🚀 Flash Sale is LIVE — 500 orders ready to fire!');
+        startStatsPoll(); // begin dashboard polling as soon as page is ready
+      }
+    }
+    const timerID = setInterval(tick, 1000);
+
+    // ── SCROLL LOCK ───────────────────────────────────────────────
+    function toggleScroll() {
+      autoScroll = !autoScroll;
+      const btn = document.getElementById('scroll-btn');
+      btn.textContent = autoScroll ? '⬇ AUTO' : '⏸ PAUSED';
+      if (autoScroll) logBox.scrollTop = logBox.scrollHeight;
+    }
+    logBox.addEventListener('scroll', () => {
+      const atBottom = logBox.scrollHeight - logBox.scrollTop - logBox.clientHeight < 30;
+      if (!atBottom && autoScroll) { autoScroll = false; document.getElementById('scroll-btn').textContent = '⏸ PAUSED'; }
+      if (atBottom && !autoScroll) { autoScroll = true; document.getElementById('scroll-btn').textContent = '⬇ AUTO'; }
+    });
+
+    // ── LOG ───────────────────────────────────────────────────────
+    function appendLog(type, pod, msg) {
+      const now = new Date();
+      const ts = now.toTimeString().slice(0, 8) + '.' + String(now.getMilliseconds()).padStart(3, '0');
+      const line = document.createElement('div');
+      line.className = 'log-line ' + type;
+      line.innerHTML =
+        `<span class="log-ts">${ts}</span>` +
+        (pod ? `<span class="log-pod">${esc(pod)}</span>` : `<span class="log-pod" style="color:#444;">—</span>`) +
+        `<span class="log-msg">${esc(msg)}</span>`;
+      logBox.appendChild(line);
+      if (type === 'ok') { okCount++; document.getElementById('ok-count').textContent = okCount; }
+      if (type === 'err') { errCount++; document.getElementById('err-count').textContent = errCount; }
+      if (autoScroll) logBox.scrollTop = logBox.scrollHeight;
+      while (logBox.children.length > 900) logBox.removeChild(logBox.firstChild);
+    }
+    function clearLog() {
+      logBox.innerHTML = '';
+      okCount = errCount = 0;
+      document.getElementById('ok-count').textContent = '0';
+      document.getElementById('err-count').textContent = '0';
+      appendLog('info', null, 'Log cleared.');
+    }
+    function esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ── STATS ─────────────────────────────────────────────────────
+    function updateOrderStats() {
+      document.getElementById('stat-sent').textContent = sent;
+      document.getElementById('stat-success').textContent = success;
+      document.getElementById('stat-fail').textContent = failed;
+      const pct = Math.round(sent / TOTAL_ORDERS * 100);
+      document.getElementById('progress-fill').style.width = pct + '%';
+      document.getElementById('progress-pct').textContent = pct + '%';
+      document.getElementById('progress-label').textContent = `${sent} / ${TOTAL_ORDERS} requests dispatched`;
+      if (startTime) {
+        const s = ((Date.now() - startTime) / 1000).toFixed(1);
+        document.getElementById('elapsed-lbl').textContent = `${s}s elapsed`;
+      }
+    }
+
+    // ── POD TRACKER ───────────────────────────────────────────────
+    function trackPod(name) {
+      if (!name || name === 'unknown') return;
+      seenPods.add(name);
+      const list = [...seenPods].join('  ·  ');
+      document.getElementById('pods-seen').textContent = list;
+      document.getElementById('pods-bar').innerHTML = 'Pods: <span>' + esc(list) + '</span>';
+    }
+
+    // ── ARCH HIGHLIGHT ────────────────────────────────────────────
+    function lightArch(node) {
+      const seq = ['arch-frontend', 'arr-1', 'arch-api', 'arr-2', 'arch-redis', 'arr-3', 'arch-worker', 'arr-4', 'arch-mysql'];
+      seq.forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('lit'); });
+      const idx = seq.indexOf(node);
+      for (let i = 0; i <= idx; i++) {
+        const el = document.getElementById(seq[i]);
+        if (el) el.classList.add('lit');
+      }
+    }
+
+    // ── DASHBOARD POLL ────────────────────────────────────────────
+    // Calls /stats every STATS_INTERVAL ms — auto-updates Redis depth,
+    // DB row count, container list, all without any terminal command.
+    async function pollStats() {
+      try {
+        const res = await fetch(`${API_URL}/stats`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Redis
+        const depth = data.redisQueueDepth || 0;
+        document.getElementById('redis-depth').textContent = depth;
+        document.getElementById('redis-bar').style.width = Math.min(depth / MAX_REDIS_SHOW * 100, 100) + '%';
+        document.getElementById('redis-ts').textContent = 'updated ' + new Date().toTimeString().slice(0, 8);
+        if (depth > 0) lightArch('arch-redis');
+
+        // DB count
+        const cnt = data.dbRowCount || 0;
+        document.getElementById('db-count').textContent = cnt;
+        document.getElementById('db-ts').textContent = 'updated ' + new Date().toTimeString().slice(0, 8);
+        if (cnt > 0) lightArch('arch-mysql');
+
+        // DB by pod table
+        const tbody = document.getElementById('db-by-pod');
+        if (data.dbByPod && data.dbByPod.length) {
+          tbody.innerHTML = data.dbByPod.map(r =>
+            `<tr><td style="font-family:monospace;color:#0066c0;">${esc(r.pod)}</td><td style="font-weight:bold;color:#007600;">${r.cnt}</td></tr>`
+          ).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="2" style="color:#bbb;">No rows yet...</td></tr>';
+        }
+
+        // Docker containers
+        const cl = document.getElementById('container-list');
+        document.getElementById('docker-ts').textContent = 'updated ' + new Date().toTimeString().slice(0, 8);
+        if (data.containers && data.containers.length) {
+          cl.innerHTML = data.containers.map(c => {
+            const dotClass = c.state === 'running' ? 'running' : 'stopped';
+            return `<li>
+          <span class="c-dot ${dotClass}"></span>
+          <span class="c-name">${esc(c.name)}</span>
+          <span class="c-status">${esc(c.status)}</span>
+        </li>`;
+          }).join('');
+        } else {
+          cl.innerHTML = '<li style="color:#bbb;font-size:12px;">Docker socket not available — check compose volume</li>';
+        }
+
+      } catch (e) { /* network error — skip silently */ }
+    }
+
+    function startStatsPoll() {
+      pollStats();
+      statsTimer = setInterval(pollStats, STATS_INTERVAL);
+    }
+
+    // ── SEND ONE ORDER ────────────────────────────────────────────
+    async function sendOrder(n) {
+      const body = JSON.stringify({ product: 'Sony WH-1000XM5', orderId: n });
+      try {
+        const res = await fetch(`${API_URL}/order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body
+        });
+        const data = await res.json();
+        sent++;
+        if (res.ok) {
+          success++;
+          const pod = data.handledBy || 'unknown';
+          trackPod(pod);
+          appendLog('ok', pod, `✓ #${n} → queued in Redis`);
+        } else {
+          failed++;
+          appendLog('err', null, `✗ #${n} HTTP ${res.status}: ${data.error || '?'}`);
+        }
+      } catch (e) {
+        sent++; failed++;
+        appendLog('err', null, `✗ #${n} Network: ${e.message}`);
+      }
+      updateOrderStats();
+    }
+
+    // ── RPS COUNTER ───────────────────────────────────────────────
+    function startRps() {
+      let last = 0;
+      rpsInterval = setInterval(() => {
+        document.getElementById('stat-rps').textContent = sent - last;
+        last = sent;
+      }, 1000);
+    }
+
+    // ── MAIN: START FLASH SALE ────────────────────────────────────
+    async function startFlashSale() {
+      if (saleRunning) return;
+      saleRunning = true;
+      fireBtn.disabled = true;
+      fireBtn.textContent = '⚡ Sending 500 orders...';
+
+      sent = success = failed = 0;
+      okCount = errCount = 0;
+      seenPods.clear();
+      startTime = Date.now();
+      updateOrderStats();
+      startRps();
+      if (!statsTimer) startStatsPoll();
+      lightArch('arch-frontend');
+
+      appendLog('warn', null, `━━━ FLASH SALE STARTED — ${TOTAL_ORDERS} orders firing ━━━`);
+      appendLog('info', null, `API: ${API_URL}  batch=${BATCH_SIZE}  delay=${BATCH_DELAY_MS}ms`);
+
+      document.getElementById('footer-status').textContent = 'Sale running...';
+
+      let num = 1;
+      const batches = Math.ceil(TOTAL_ORDERS / BATCH_SIZE);
+      for (let b = 0; b < batches; b++) {
+        const end = Math.min(num + BATCH_SIZE - 1, TOTAL_ORDERS);
+        const promises = [];
+        for (let i = num; i <= end; i++) promises.push(sendOrder(i));
+        await Promise.all(promises);
+        num = end + 1;
+        if (num <= TOTAL_ORDERS) await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
+      }
+
+      clearInterval(rpsInterval);
+      document.getElementById('stat-rps').textContent = '0';
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+      appendLog('warn', null,
+        `━━━ COMPLETE in ${elapsed}s — ✓${success} OK  ✗${failed} FAILED  Pods: ${seenPods.size} ━━━`);
+
+      fireBtn.textContent = '✅ Done! Reload page to run again.';
+      fireBtn.style.background = '#28a745';
+      fireBtn.style.borderColor = '#218838';
+      fireBtn.style.color = '#fff';
+      document.getElementById('footer-status').textContent = `Done in ${elapsed}s`;
+    }
+  </script>
+</body>
+
+</html>

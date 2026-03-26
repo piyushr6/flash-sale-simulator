@@ -1,0 +1,54 @@
+---
+# ── Worker Deployment (2 replicas → 2 concurrent queue consumers) ──
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  labels:
+    app: worker
+spec:
+  replicas: 2          # ← 2 workers process the queue concurrently
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+        - name: worker
+          image: worker:latest
+          imagePullPolicy: Never    # use locally built image (minikube)
+          env:
+            - name: REDIS_URL
+              value: "redis://redis:6379"
+            - name: MYSQL_HOST
+              value: "mysql"
+            - name: MYSQL_PORT
+              value: "3306"
+            - name: MYSQL_USER
+              value: "flashuser"
+            - name: MYSQL_PASS
+              value: "flashpass"
+            - name: MYSQL_DB
+              value: "flashsale"
+            # Expose pod name so worker logs show which worker processed each order
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu:    "100m"
+            limits:
+              memory: "256Mi"
+              cpu:    "500m"
+          # Workers have no HTTP server, so liveness checks the process
+          livenessProbe:
+            exec:
+              command: ["pgrep", "-f", "node worker.js"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
