@@ -21,7 +21,6 @@ pipeline {
                     echo "Branch:  $(git rev-parse --abbrev-ref HEAD)"
                     echo "Commit:  $(git rev-parse --short HEAD)"
                     echo "Message: $(git log -1 --pretty=%B)"
-                    ls -la
                 '''
             }
         }
@@ -31,11 +30,8 @@ pipeline {
                 echo '━━━ Stage 2: Building Docker images ━━━'
                 sh '''
                     cd ${WORKSPACE}
-                    echo "Docker:         $(docker --version)"
-                    echo "Docker Compose: $(docker-compose --version)"
                     docker-compose build order-api worker frontend nginx
                     echo "✅ All images built"
-                    docker images | grep -E "order-api|worker|frontend|flash-nginx" || true
                 '''
             }
         }
@@ -60,7 +56,6 @@ pipeline {
                         --scale order-api=3 \
                         --scale worker=2
                     echo "✅ Stack started"
-                    docker-compose ps
                 '''
             }
         }
@@ -69,42 +64,65 @@ pipeline {
             steps {
                 echo '━━━ Stage 5: Health check ━━━'
                 sh '''
-                    echo "Waiting 20s for all services to be ready..."
-                    sleep 20
+                    echo "Waiting 25s for all services to initialise..."
+                    sleep 25
 
-                    echo "Checking containers are running..."
+                    echo ""
+                    echo "Container status:"
                     docker-compose ps
 
                     echo ""
-                    echo "Checking API response via nginx..."
-                    RESPONSE=$(docker exec flash-nginx wget -qO- http://localhost/health 2>&1 || echo "FAILED")
-                    echo "API response: $RESPONSE"
+                    echo "Checking each required container is running..."
 
-                    if echo "$RESPONSE" | grep -q "status"; then
-                        echo "✅ API health check passed"
+                    for container in flash-nginx flash-mysql flash-redis flash-frontend; do
+                        STATE=$(docker inspect --format="{{.State.Running}}" $container 2>/dev/null || echo "false")
+                        if [ "$STATE" = "true" ]; then
+                            echo "✅ $container is running"
+                        else
+                            echo "❌ $container is NOT running"
+                            exit 1
+                        fi
+                    done
+
+                    echo ""
+                    echo "Checking API pods are running..."
+                    API_COUNT=$(docker ps --filter "name=flash-sale-order-api" --filter "status=running" -q | wc -l)
+                    echo "API pods running: $API_COUNT"
+                    if [ "$API_COUNT" -ge "1" ]; then
+                        echo "✅ API pods OK"
                     else
-                        echo "❌ API did not respond correctly"
-                        echo "Response was: $RESPONSE"
-                        docker-compose logs order-api --tail=10
+                        echo "❌ No API pods running"
                         exit 1
                     fi
 
                     echo ""
-                    echo "Checking Redis..."
+                    echo "Checking Redis responds..."
                     docker exec flash-redis redis-cli ping
                     echo "✅ Redis OK"
 
                     echo ""
-                    echo "Checking MySQL..."
+                    echo "Checking MySQL responds..."
                     docker exec flash-mysql mysqladmin ping -h localhost -u flashuser -pflashpass --silent
                     echo "✅ MySQL OK"
+
+                    echo ""
+                    echo "Checking API health via one of the API containers directly..."
+                    API_CONTAINER=$(docker ps --filter "name=flash-sale-order-api" --filter "status=running" -q | head -1)
+                    RESPONSE=$(docker exec $API_CONTAINER wget -qO- http://localhost:3000/health 2>/dev/null || echo "")
+                    echo "API response: $RESPONSE"
+                    if echo "$RESPONSE" | grep -q "ok"; then
+                        echo "✅ API health check passed"
+                    else
+                        echo "❌ API health check failed"
+                        exit 1
+                    fi
                 '''
             }
         }
 
         stage('Success') {
             steps {
-                echo '━━━ Stage 6: Deployment summary ━━━'
+                echo '━━━ Stage 6: Deployment complete ━━━'
                 sh '''
                     echo ""
                     echo "╔══════════════════════════════════════════════╗"
@@ -128,8 +146,8 @@ pipeline {
             echo '✅ Pipeline complete — open http://localhost:8080'
         }
         failure {
-            echo '❌ Pipeline failed — check stage logs above'
-            sh 'docker-compose logs --tail=20 || true'
+            echo '❌ Pipeline failed'
+            sh 'docker-compose logs --tail=10 || true'
         }
         always {
             echo 'Pipeline finished.'
