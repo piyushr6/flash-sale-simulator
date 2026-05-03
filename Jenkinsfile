@@ -31,8 +31,9 @@ pipeline {
                 echo '━━━ Stage 2: Building Docker images ━━━'
                 sh '''
                     cd ${WORKSPACE}
-                    echo "Docker version: $(docker version --format '{{.Client.Version}}')"
-                    docker compose build order-api worker frontend
+                    echo "Docker version:         $(docker --version)"
+                    echo "Docker Compose version: $(docker-compose --version)"
+                    docker-compose build order-api worker frontend
                     echo "✅ Images built"
                     docker images | grep -E "order-api|worker|frontend" || true
                 '''
@@ -44,7 +45,7 @@ pipeline {
                 echo '━━━ Stage 3: Stopping old containers ━━━'
                 sh '''
                     cd ${WORKSPACE}
-                    docker compose down --remove-orphans || true
+                    docker-compose down --remove-orphans || true
                     echo "✅ Old stack stopped"
                 '''
             }
@@ -55,11 +56,11 @@ pipeline {
                 echo '━━━ Stage 4: Starting containers ━━━'
                 sh '''
                     cd ${WORKSPACE}
-                    docker compose up --build -d \
+                    docker-compose up --build -d \
                         --scale order-api=3 \
                         --scale worker=2
                     echo "✅ Stack started"
-                    docker compose ps
+                    docker-compose ps
                 '''
             }
         }
@@ -85,7 +86,7 @@ pipeline {
 
                         if [ "$i" = "10" ]; then
                             echo "❌ Health check failed after 10 attempts"
-                            docker compose logs order-api --tail=20
+                            docker-compose logs order-api --tail=20
                             exit 1
                         fi
                     done
@@ -108,7 +109,7 @@ pipeline {
                     echo "║  Jenkins     →  http://localhost:8090        ║"
                     echo "╚══════════════════════════════════════════════╝"
                     echo ""
-                    docker compose ps
+                    docker-compose ps
                 '''
             }
         }
@@ -120,7 +121,7 @@ pipeline {
         }
         failure {
             echo '❌ Pipeline failed — check stage logs above'
-            sh 'docker compose logs --tail=20 || true'
+            sh 'docker-compose logs --tail=20 || true'
         }
         always {
             echo 'Pipeline finished.'
