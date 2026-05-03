@@ -31,11 +31,11 @@ pipeline {
                 echo '━━━ Stage 2: Building Docker images ━━━'
                 sh '''
                     cd ${WORKSPACE}
-                    echo "Docker version:         $(docker --version)"
-                    echo "Docker Compose version: $(docker-compose --version)"
-                    docker-compose build order-api worker frontend
-                    echo "✅ Images built"
-                    docker images | grep -E "order-api|worker|frontend" || true
+                    echo "Docker:         $(docker --version)"
+                    echo "Docker Compose: $(docker-compose --version)"
+                    docker-compose build order-api worker frontend nginx
+                    echo "✅ All images built"
+                    docker images | grep -E "order-api|worker|frontend|flash-nginx" || true
                 '''
             }
         }
@@ -56,7 +56,7 @@ pipeline {
                 echo '━━━ Stage 4: Starting containers ━━━'
                 sh '''
                     cd ${WORKSPACE}
-                    docker-compose up --build -d \
+                    docker-compose up -d \
                         --scale order-api=3 \
                         --scale worker=2
                     echo "✅ Stack started"
@@ -69,19 +69,22 @@ pipeline {
             steps {
                 echo '━━━ Stage 5: Health check ━━━'
                 sh '''
-                    echo "Waiting 25s for MySQL to initialise..."
+                    echo "Waiting 25s for services to be ready..."
                     sleep 25
 
+                    # Use docker exec to check health from inside the network
+                    # This avoids the localhost issue with Jenkins container networking
                     for i in 1 2 3 4 5 6 7 8 9 10; do
-                        STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-                            --max-time 3 http://localhost:3000/health 2>/dev/null || echo "000")
+                        STATUS=$(docker exec flash-nginx \
+                            wget -qO- http://localhost/health 2>/dev/null \
+                            | grep -c '"status":"ok"' || echo "0")
 
-                        if [ "$STATUS" = "200" ]; then
-                            echo "✅ API health check passed (HTTP 200)"
+                        if [ "$STATUS" = "1" ]; then
+                            echo "✅ API health check passed"
                             break
                         fi
 
-                        echo "Attempt $i/10 — HTTP $STATUS — retrying in 5s..."
+                        echo "Attempt $i/10 — not ready yet — retrying in 5s..."
                         sleep 5
 
                         if [ "$i" = "10" ]; then
