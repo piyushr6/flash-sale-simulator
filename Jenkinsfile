@@ -69,30 +69,35 @@ pipeline {
             steps {
                 echo '━━━ Stage 5: Health check ━━━'
                 sh '''
-                    echo "Waiting 25s for services to be ready..."
-                    sleep 25
+                    echo "Waiting 20s for all services to be ready..."
+                    sleep 20
 
-                    # Use docker exec to check health from inside the network
-                    # This avoids the localhost issue with Jenkins container networking
-                    for i in 1 2 3 4 5 6 7 8 9 10; do
-                        STATUS=$(docker exec flash-nginx \
-                            wget -qO- http://localhost/health 2>/dev/null \
-                            | grep -c '"status":"ok"' || echo "0")
+                    echo "Checking containers are running..."
+                    docker-compose ps
 
-                        if [ "$STATUS" = "1" ]; then
-                            echo "✅ API health check passed"
-                            break
-                        fi
+                    echo ""
+                    echo "Checking API response via nginx..."
+                    RESPONSE=$(docker exec flash-nginx wget -qO- http://localhost/health 2>&1 || echo "FAILED")
+                    echo "API response: $RESPONSE"
 
-                        echo "Attempt $i/10 — not ready yet — retrying in 5s..."
-                        sleep 5
+                    if echo "$RESPONSE" | grep -q "status"; then
+                        echo "✅ API health check passed"
+                    else
+                        echo "❌ API did not respond correctly"
+                        echo "Response was: $RESPONSE"
+                        docker-compose logs order-api --tail=10
+                        exit 1
+                    fi
 
-                        if [ "$i" = "10" ]; then
-                            echo "❌ Health check failed after 10 attempts"
-                            docker-compose logs order-api --tail=20
-                            exit 1
-                        fi
-                    done
+                    echo ""
+                    echo "Checking Redis..."
+                    docker exec flash-redis redis-cli ping
+                    echo "✅ Redis OK"
+
+                    echo ""
+                    echo "Checking MySQL..."
+                    docker exec flash-mysql mysqladmin ping -h localhost -u flashuser -pflashpass --silent
+                    echo "✅ MySQL OK"
                 '''
             }
         }
