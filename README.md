@@ -1,669 +1,752 @@
 # ⚡ Flash Sale Order Simulator
 
-### DevOps Demo — Docker · Kubernetes · Redis · MySQL · Jenkins CI/CD
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-18-339933?style=flat&logo=node.js&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat&logo=redis&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat&logo=mysql&logoColor=white)
+![Jenkins](https://img.shields.io/badge/Jenkins-CI%2FCD-D24939?style=flat&logo=jenkins&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-Load%20Balancer-009639?style=flat&logo=nginx&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=flat)
 
-```
-GitHub → Jenkins → Docker Build → Kubernetes Deploy
-Browser → Order API (×3 pods) → Redis Queue → Worker (×2 pods) → MySQL
-```
+> A production-style DevOps demo that simulates 500 concurrent users hitting a flash sale at the same time — and shows exactly how a distributed system handles it in real time.
 
 ---
 
-## 📁 Project Structure
+## 📖 Overview
+
+Flash Sale Order Simulator is a **hands-on DevOps demonstration project** built to show how real e-commerce systems handle massive traffic spikes. When a flash sale starts, 500 simultaneous HTTP requests fire from the browser. The system processes them through a load-balanced API layer, buffers them in a Redis queue, and drains them steadily into MySQL — all while a live dashboard shows every moving part without opening a terminal.
+
+### Why this project exists
+
+Most DevOps tutorials show you individual tools in isolation. This project shows them **working together under real load**:
+
+- You can *see* load balancing happen — three different pod names appear in the request log
+- You can *see* queue buffering — Redis depth spikes to 400+ then drains to 0
+- You can *see* database writes smoothing out — steady inserts instead of a 500-row spike
+- You can *see* the CI/CD pipeline that deployed it all — one git push triggers everything
+
+It is designed to be demoed live to an audience with multiple browser tabs open simultaneously.
+
+---
+
+## ✨ Features
+
+### Application
+
+- ⚡ Simulates 500 concurrent order requests with one button click
+- 🛒 Amazon-style product page UI (Sony WH-1000XM5 flash sale)
+- 📊 Built-in live dashboard — Redis queue depth, MySQL row count, Docker container status, system flow diagram — all auto-updating every 1.5 seconds
+- 📋 Live request log with pod name per entry — visually proves load balancing
+- 🔄 Auto-scrolling log with pause/resume toggle
+- 🔗 One-click buttons to open Redis Commander, phpMyAdmin, Jenkins, API health
+
+### Backend
+
+- `POST /order` — receives orders and pushes to Redis queue instantly
+- `GET /stats` — returns Redis depth + MySQL counts + Docker container list in one call
+- `GET /logs` — returns rolling in-memory API logs
+- `GET /health` — pod name + timestamp for health checks
+
+### Infrastructure
+
+- 🐳 **Docker Compose** — entire stack starts with one command
+- ⚖️ **Nginx load balancer** — distributes requests across 3 API replicas
+- 🗄️ **Redis queue** — absorbs traffic spikes, decouples API from database
+- 👷 **Competing consumers** — 2 worker pods race to drain the queue
+- 💾 **MySQL persistence** — data survives container restarts via Docker volume
+- 🔁 **Jenkins CI/CD** — 6-stage pipeline triggered by git push
+- 📡 **Docker socket API** — frontend shows live container status without any terminal
+
+### Monitoring (all browser-based, no terminal)
+
+- Redis Commander at `:8081`
+- phpMyAdmin at `:8082`
+- Jenkins pipeline at `:8090`
+- Live frontend dashboard at `:8080`
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | HTML, CSS, JavaScript (Vanilla) — served by Nginx |
+| **API** | Node.js 18, Express, CORS |
+| **Queue** | Redis 7 |
+| **Database** | MySQL 8.0 |
+| **Worker** | Node.js 18 (redis + mysql2) |
+| **Load Balancer** | Nginx Alpine |
+| **Containerisation** | Docker, Docker Compose |
+| **CI/CD** | Jenkins LTS (Docker container) |
+| **Version Control** | Git + GitHub |
+| **OS** | Ubuntu (WSL2 on Windows) |
+
+---
+
+## 📁 Directory Structure
 
 ```
 flash-sale/
-├── Jenkinsfile                ← CI/CD pipeline (6 stages)
-├── docker-compose.yml         ← All services wired together
-├── nginx-lb.conf              ← Nginx load balancer for API pods
-├── setup-jenkins.ps1          ← One-click Jenkins setup for Windows
+├── Jenkinsfile                  ← 6-stage CI/CD pipeline
+├── docker-compose.yml           ← All 9 services wired together
+├── nginx-lb.conf                ← Nginx upstream load balancer config
+├── setup-jenkins.ps1            ← One-click Jenkins setup (Windows/WSL)
 │
 ├── frontend/
-│   ├── index.html             ← Amazon-style UI + built-in live dashboard
-│   ├── Dockerfile
-│   └── nginx.conf
+│   ├── index.html               ← Full UI + live dashboard (single file)
+│   ├── Dockerfile               ← nginx:alpine serving static HTML
+│   └── nginx.conf               ← CORS-enabled nginx config
 │
 ├── order-api/
-│   ├── server.js              ← POST /order + /stats + /logs endpoints
-│   ├── package.json
-│   └── Dockerfile
+│   ├── server.js                ← Express API: /order /stats /logs /health
+│   ├── package.json             ← express, redis, cors, mysql2
+│   └── Dockerfile               ← node:18-alpine
 │
 ├── worker/
-│   ├── worker.js              ← Redis BLPOP → MySQL INSERT
-│   ├── package.json
-│   └── Dockerfile
+│   ├── worker.js                ← BLPOP from Redis → INSERT into MySQL
+│   ├── package.json             ← redis, mysql2
+│   └── Dockerfile               ← node:18-alpine
 │
-├── k8s/
-│   ├── configmap.yaml
-│   ├── redis.yaml             ← Redis + Redis Commander
-│   ├── mysql.yaml             ← MySQL + Secret + PVC + phpMyAdmin
-│   ├── order-api.yaml         ← 3 replicas + NodePort :30000
-│   ├── worker.yaml            ← 2 replicas
-│   └── frontend.yaml          ← NodePort :30080
+├── nginx/
+│   ├── Dockerfile               ← Builds nginx with config baked in
+│   └── nginx-lb.conf            ← Upstream config for 3 API containers
 │
-└── jenkins/
-    ├── Dockerfile             ← Jenkins LTS + Docker CLI + kubectl
-    └── plugins.txt            ← Pre-installed plugins
+├── jenkins/
+│   ├── Dockerfile               ← Jenkins LTS + Docker CLI + kubectl
+│   └── plugins.txt              ← Pre-installed plugins list
+│
+└── k8s/                         ← Kubernetes manifests (optional path)
+    ├── configmap.yaml
+    ├── redis.yaml
+    ├── mysql.yaml
+    ├── order-api.yaml
+    ├── worker.yaml
+    └── frontend.yaml
 ```
 
 ---
 
-## 🖥️ PART 1 — One-Time Machine Setup (Windows + PowerShell)
+## 🖥️ Setup Guide
 
-Do these once. Skip anything already installed.
+### Prerequisites — what you need installed once
+
+| Tool | Purpose | Required |
+|---|---|---|
+| Windows 10/11 | Host OS | ✅ |
+| WSL2 (Ubuntu) | Linux environment on Windows | ✅ |
+| Docker Desktop | Container runtime | ✅ |
+| Git | Version control | ✅ |
+| VS Code | Editor (recommended) | Optional |
 
 ---
 
 ### Step 1 · Install WSL2
 
-**Why?** Docker Desktop on Windows needs WSL2 as its Linux kernel. Without it, Linux containers cannot run.
+WSL2 gives you a real Ubuntu Linux terminal on Windows. Docker Desktop uses it as its backend.
 
 ```powershell
 # Run PowerShell AS ADMINISTRATOR
 wsl --install
-# Restart Windows when prompted
 ```
+
+Restart Windows when prompted. After restart, Ubuntu will finish installing and ask you to create a Linux username and password.
+
+> **Verify:** Open Start menu → search `Ubuntu` → should open a terminal showing `username@DESKTOP:~$`
 
 ---
 
 ### Step 2 · Install Docker Desktop
 
-**Why?** Docker Desktop is the container runtime that everything depends on.
-
-1. Download: https://www.docker.com/products/docker-desktop/
-2. Install and open Docker Desktop
-3. **Settings → Resources → WSL Integration** → enable your WSL2 distro
-4. **Settings → Resources → Advanced** → Memory: **6 GB**, CPUs: **3**
+1. Download from <https://www.docker.com/products/docker-desktop/>
+2. Install and launch Docker Desktop
+3. Go to **Settings → Resources → WSL Integration** → toggle on your Ubuntu distro
+4. Go to **Settings → Resources → Advanced** → set Memory: **6 GB**, CPUs: **3**
 5. Click **Apply & Restart**
 
-```powershell
-# Verify — must show both Client and Server, no errors
+```bash
+# Verify in your Ubuntu (WSL) terminal
 docker version
+# Must show both Client and Server versions — no errors
 ```
 
 ---
 
-### Step 3 · Install Chocolatey
+### Step 3 · Install Git in WSL
 
-**Why?** Chocolatey is the Windows package manager for installing kubectl and minikube.
+```bash
+# In your Ubuntu (WSL) terminal
+sudo apt update && sudo apt install -y git
 
-```powershell
-# Run PowerShell AS ADMINISTRATOR
-Set-ExecutionPolicy Bypass -Scope Process -Force
-[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+git --version
+# git version 2.x.x
+```
 
-# Close and reopen PowerShell after this completes
+Configure your identity:
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "your@email.com"
 ```
 
 ---
 
-### Step 4 · Install kubectl
+### Step 4 · Clone the repository
 
-**Why?** `kubectl` is the CLI to deploy apps, watch pods, and stream logs from Kubernetes.
-
-```powershell
-choco install kubernetes-cli -y
-kubectl version --client
+```bash
+# In your Ubuntu (WSL) terminal
+cd ~
+git clone https://github.com/piyushr6/flash-sale-simulator.git
+cd flash-sale-simulator
+ls
+# Should show: Jenkinsfile  docker-compose.yml  frontend/  order-api/  worker/  ...
 ```
 
 ---
 
-### Step 5 · Install Minikube
+### Step 5 · Set up Jenkins
 
-**Why?** Minikube runs a single-node Kubernetes cluster locally inside Docker Desktop. No cloud needed.
+Jenkins runs as a Docker container. Run this once:
 
-```powershell
-choco install minikube -y
+```bash
+# In your Ubuntu (WSL) terminal — from the project folder
+docker run -d \
+  --name jenkins \
+  --restart unless-stopped \
+  -p 8090:8080 \
+  -p 50000:50000 \
+  -v jenkins-data:/var/jenkins_home \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  jenkins/jenkins:lts-jdk17
+```
+
+Install Docker CLI inside Jenkins (run once):
+
+```bash
+docker exec -it --user root jenkins bash
+# Inside the container:
+apt-get update -y && apt-get install -y docker.io curl
+chmod 666 /var/run/docker.sock
+exit
+```
+
+Install Docker Compose inside Jenkins (run once):
+
+```bash
+docker exec -it --user root jenkins bash
+# Inside the container:
+curl -SL "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-linux-x86_64" \
+  -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+docker-compose version
+exit
+```
+
+Verify both work inside Jenkins:
+
+```bash
+docker exec jenkins docker version        # must show version
+docker exec jenkins docker-compose version # must show version
 ```
 
 ---
 
-### Step 6 · Start Minikube
+### Step 6 · Log in to Jenkins
 
-```powershell
-minikube start --driver=docker --cpus=3 --memory=5500mb
-# Success message: Done! kubectl is now configured to use "minikube"
+```bash
+# Get your admin password
+docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
+
+Open **<http://localhost:8090>** in your browser. Paste the password. Click **Install suggested plugins**. Create your admin account.
 
 ---
 
-### Step 7 · Verify everything works
+### Step 7 · Add GitHub credentials to Jenkins
 
-```powershell
-docker --version
-# Docker version 26.x.x
-
-kubectl get nodes
-# NAME       STATUS   ROLES           AGE
-# minikube   Ready    control-plane   ...
-
-minikube status
-# minikube: Running  /  kubelet: Running  /  apiserver: Running
-```
-
-All three must succeed before continuing.
+1. Open <http://localhost:8090> → **Manage Jenkins → Credentials → System → Global credentials → Add Credentials**
+2. Fill in:
+   - Kind: `Username with password`
+   - Username: your GitHub username
+   - Password: your GitHub Personal Access Token (from <https://github.com/settings/tokens> — needs `repo` scope)
+   - ID: `github-creds`
+3. Click **Save**
 
 ---
 
-## 🐳 PART 2 — Run with Docker Compose (Recommended for Demo)
+### Step 8 · Create the pipeline job
 
-This is the easiest path. One command starts everything.
-
-### The only command you need
-
-```powershell
-cd flash-sale
-docker compose up --build --scale order-api=3 --scale worker=2
-```
-
-Wait about **30 seconds** for MySQL to initialise. You will see this line when everything is ready:
-
-```
-flash-worker-1  | [WORKER][worker-1] ✅ Table "orders" ready
-```
+1. Click **New Item** → name: `flash-sale-pipeline` → select **Pipeline** → OK
+2. Under **Build Triggers** → tick **Poll SCM** → schedule: `H/2 * * * *`
+3. Under **Pipeline**:
+   - Definition: `Pipeline script from SCM`
+   - SCM: `Git`
+   - Repository URL: `https://github.com/piyushr6/flash-sale-simulator.git`
+   - Credentials: `github-creds`
+   - Branch: `*/main`
+   - Script Path: `Jenkinsfile`
+4. Click **Save**
 
 ---
 
-### Browser tabs to open
+## 🚀 Running the Project
 
-Open each in a **separate browser tab**. No terminal commands needed to monitor anything.
+### Terminal rule — always use WSL
 
-| Tab                | URL                          | What you see                                 |
-| ------------------ | ---------------------------- | -------------------------------------------- |
-| **1 · Frontend**   | http://localhost:8080        | Countdown → button → full live dashboard     |
-| **2 · Redis UI**   | http://localhost:8081        | `orders` queue filling and draining live     |
-| **3 · phpMyAdmin** | http://localhost:8082        | Rows appearing in real time                  |
-| **4 · API Health** | http://localhost:3000/health | Pod name + timestamp JSON                    |
-| **5 · API Stats**  | http://localhost:3000/stats  | Full JSON: queue depth, DB count, containers |
-| **6 · Jenkins**    | http://localhost:8090        | CI/CD pipeline (after Jenkins setup)         |
+Every command in this project runs from the **Ubuntu (WSL) terminal**, not Windows PowerShell.
 
-> **Tip for presentations:** Open all 6 tabs before the audience arrives. Use Tab 1 as your main screen. Switch to Tabs 2 and 3 during the demo to show the queue and database updating in real time.
+| ✅ Correct | ❌ Wrong |
+|---|---|
+| `piyush@DESKTOP:~/flash-sale$` | `PS C:\Users\Piyush>` |
+
+Open Ubuntu from Start menu or open it in VS Code: `Ctrl+Shift+P` → **Terminal: Select Default Profile** → **Ubuntu**.
 
 ---
 
-### What the frontend dashboard shows automatically (no terminal)
+### Start everything
 
-The frontend polls the API every **1.5 seconds** and updates all panels on its own:
+**Terminal 1 — start Jenkins (if not already running):**
 
-| Panel               | Updates             | Shows                                     |
-| ------------------- | ------------------- | ----------------------------------------- |
-| Live Request Log    | Instant per request | Pod name + message per order              |
-| Pods Seen           | Instant             | All 3 pod names as they respond           |
-| Redis Queue gauge   | Every 1.5 sec       | Current queue depth + bar                 |
-| MySQL table         | Every 1.5 sec       | Total rows + count per API pod            |
-| Docker Containers   | Every 1.5 sec       | All `flash-*` containers + running status |
-| System Flow diagram | Instant             | Animates as each pipeline stage activates |
+```bash
+docker start jenkins
+# Wait 15 seconds
+docker ps | grep jenkins   # should show Up
+```
+
+**Terminal 1 — start the flash sale stack:**
+
+```bash
+cd ~/flash-sale-simulator
+docker-compose up --scale order-api=3 --scale worker=2
+```
+
+Leave this terminal running — it shows live container logs. Wait for this line before opening browser tabs:
+
+```
+worker-1  | [WORKER] ✅ Table "orders" ready
+```
+
+This confirms MySQL, Redis, and the workers are all connected and ready.
+
+---
+
+### Open browser tabs
+
+Open all of these **before** starting your demo:
+
+| Tab | URL | What you see |
+|-----|-----|--------------|
+| **1 · Main demo** | <http://localhost:8080> | Product page, countdown, dashboard |
+| **2 · Redis UI** | <http://localhost:8081> | Queue depth live |
+| **3 · phpMyAdmin** | <http://localhost:8082> | Orders table live |
+| **4 · API Health** | <http://localhost:3000/health> | Pod name JSON |
+| **5 · Jenkins** | <http://localhost:8090> | CI/CD pipeline |
+
+> **phpMyAdmin tip:** Log in → click `flashsale` → click `orders` → click **Browse**. Leave it here so you can hit **F5** to refresh rows during the demo.
+
+---
+
+### Verify everything is working
+
+Open a second WSL terminal and run:
+
+```bash
+curl http://localhost:3000/health
+# Expected: {"status":"ok","pod":"...","time":"..."}
+```
+
+If that returns — you're ready.
+
+---
+
+### Run the demo
+
+1. Switch to Tab 1 (<http://localhost:8080>)
+2. Watch the 10-second countdown
+3. When the orange **"Simulate 500 Orders Now"** button appears — click it
+4. Watch all panels update live
 
 ---
 
 ### Stop everything
 
-```powershell
-# Stop all containers
-docker compose down
+```bash
+# Stop the flash sale stack (keep MySQL data)
+docker-compose down
 
-# Stop AND wipe MySQL data (clean reset for next demo)
-docker compose down -v
-```
+# Stop Jenkins
+docker stop jenkins
 
----
-
-## ☸️ PART 3 — Run with Kubernetes (Full K8s Demo)
-
-Use this to demonstrate Kubernetes-specific features: pod scheduling, self-healing, rolling updates.
-
-### Step 1 · Point Docker at Minikube's daemon
-
-**Why?** Minikube has its own internal Docker daemon. You must build images inside it, otherwise Kubernetes cannot find them.
-
-```powershell
-minikube docker-env | Invoke-Expression
-```
-
-> ⚠️ Run this in **every new PowerShell terminal** that will run `docker build`. It resets when you close the terminal.
-
-Verify it worked:
-
-```powershell
-docker info | Select-String "Name"
-# Must show:  Name: minikube
-```
-
-### Step 2 · Set the API URL in the frontend
-
-```powershell
-minikube ip
-# Example: 192.168.49.2
-```
-
-Open `frontend/index.html` and find this line near the bottom:
-
-```js
-const API_URL = window.API_URL || "http://localhost:3000";
-```
-
-Change it to your Minikube IP:
-
-```js
-const API_URL = window.API_URL || "http://192.168.49.2:30000";
-```
-
-### Step 3 · Build all images
-
-```powershell
-docker build -t order-api:latest ./order-api
-docker build -t worker:latest    ./worker
-docker build -t frontend:latest  ./frontend
-```
-
-### Step 4 · Deploy to Kubernetes
-
-```powershell
-kubectl apply -f k8s/
-kubectl get pods -w
-```
-
-Wait until every pod shows `1/1 Running`. MySQL is slowest (~40 sec).
-
-### Step 5 · Open browser tabs (Kubernetes URLs)
-
-```powershell
-minikube ip
-# Use that IP below — example uses 192.168.49.2
-```
-
-| Tab                | URL                        | What you see        |
-| ------------------ | -------------------------- | ------------------- |
-| **1 · Frontend**   | http://\<IP\>:30080        | Full live dashboard |
-| **2 · Redis UI**   | http://\<IP\>:30081        | Queue live          |
-| **3 · phpMyAdmin** | http://\<IP\>:30082        | DB rows live        |
-| **4 · API Health** | http://\<IP\>:30000/health | Pod name JSON       |
-| **5 · Jenkins**    | http://localhost:8090      | CI/CD pipeline      |
-
-Or use `minikube service` to auto-open:
-
-```powershell
-minikube service frontend-service
-minikube service redis-commander-service
-minikube service phpmyadmin-service
-```
-
----
-
-## 🔧 PART 4 — Jenkins CI/CD Setup
-
-Automates: **code change → build → deploy → smoke test**
-
-### Step 1 · Run the setup script
-
-```powershell
-cd flash-sale
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-.\setup-jenkins.ps1
-```
-
-This builds a custom Jenkins image (Docker CLI + kubectl pre-installed), starts it on port **8090**, and prints the admin password. Takes 3–5 minutes on first run.
-
-### Step 2 · Log in
-
-Open: http://localhost:8090
-
-```powershell
-# Get the admin password
-docker exec jenkins-flash cat /var/jenkins_home/secrets/initialAdminPassword
-```
-
-Click **"Install suggested plugins"** when prompted.
-
-### Step 3 · Verify Docker and kubectl work inside Jenkins
-
-```powershell
-docker exec -it jenkins-flash bash
-# Inside the container:
-docker version        # must show a version, no error
-kubectl get nodes     # must show minikube   Ready
-exit
-```
-
-If `kubectl get nodes` fails with "connection refused", see the Troubleshooting section.
-
-### Step 4 · Create the pipeline job
-
-1. Click **New Item** → name it `flash-sale-pipeline` → choose **Pipeline** → OK
-2. Scroll to **Pipeline** section
-3. Set **Definition** to `Pipeline script from SCM`
-   - SCM: `Git`
-   - Repository URL: `https://github.com/YOUR_USER/flash-sale.git`
-   - Branch: `*/main`
-   - Script Path: `Jenkinsfile`
-4. Click **Save** → **Build Now**
-
-**For local demo (no GitHub):** set Definition to `Pipeline script` and paste the `Jenkinsfile` contents directly.
-
-### What the Jenkinsfile pipeline does
-
-| Stage                | Action                                                             |
-| -------------------- | ------------------------------------------------------------------ |
-| Clone Repository     | Verifies all Dockerfiles are present                               |
-| Build Docker Images  | `docker build` × 3 into Minikube's daemon                          |
-| Verify Kubernetes    | `kubectl get nodes` — confirms cluster reachable                   |
-| Deploy to Kubernetes | `kubectl apply -f k8s/` + `rollout restart` + waits for completion |
-| Smoke Test           | Hits `/health` up to 5 times, confirms HTTP 200                    |
-| Print Access URLs    | Prints all service URLs in a summary box                           |
-
----
-
-## 🎬 PART 5 — Live Demo Script
-
-### Before the audience arrives
-
-```powershell
-# Confirm Docker is running
+# Verify nothing running
 docker ps
-
-# Confirm all services are up
-docker compose ps
-
-# Confirm the frontend loads
-start http://localhost:8080
 ```
 
-Pre-open these browser tabs and arrange them:
+---
 
-| Tab                 | URL                   |
-| ------------------- | --------------------- |
-| 1 — Main screen     | http://localhost:8080 |
-| 2 — Redis Commander | http://localhost:8081 |
-| 3 — phpMyAdmin      | http://localhost:8082 |
-| 4 — Jenkins         | http://localhost:8090 |
+### Stop and wipe all data (clean slate)
 
-In phpMyAdmin: navigate to `flashsale` database → `orders` table → click **Browse** so you can hit F5 to refresh live during the demo.
+```bash
+docker-compose down -v    # -v removes MySQL volume
+docker stop jenkins
+docker ps                 # should be empty
+```
 
 ---
 
-### Demo flow — what to say at each step
+### Reset between demo runs (without restarting)
 
-**[Tab 1 — countdown running]**
-
-> "We're simulating a flash sale. 500 users are about to compete to buy a product at the same time. Behind this page are 3 API pods load-balanced by Kubernetes, 2 worker pods pulling from a Redis queue, and a MySQL database — all running in containers."
-
----
-
-**[Countdown reaches 0 — red LIVE badge appears, orange button shows]**
-
-> "Sale is live. When I click this button, 500 HTTP POST requests fire from the browser simultaneously."
-
----
-
-**[Click the orange button]**
-
-> "500 requests — right now."
-
----
-
-**[Stay on Tab 1 — point to the Live Request Log panel]**
-
-> "Every line in this log is one API response. Look at the pod name column — you're seeing three different names: order-api-1, order-api-2, order-api-3. That's Kubernetes round-robin load balancing. No single pod handles everything. The 'Pods seen' counter at the top confirms all three are active."
-
----
-
-**[Stay on Tab 1 — point to the Redis Queue panel]**
-
-> "The queue depth jumped to hundreds instantly. The API didn't write directly to MySQL — it pushed to Redis and returned immediately. That's the buffering pattern. Redis absorbed the entire traffic spike in milliseconds."
-
----
-
-**[Switch to Tab 2 — Redis Commander]**
-
-> "Here in Redis Commander you can see the `orders` list. Watch the length counter — it shot up fast and is now counting back down as the workers drain it."
-
----
-
-**[Back to Tab 1 — point to the MySQL panel]**
-
-> "Without opening a terminal — the MySQL row count right here is updating every 1.5 seconds. The workers are inserting steadily, not all at once. The table below it shows exactly how many orders each API pod handled — proving the load was distributed."
-
----
-
-**[Switch to Tab 3 — phpMyAdmin, press F5]**
-
-> "In phpMyAdmin you can see the actual rows. Each one records the product, the timestamp, the API pod that received the request, and the worker pod that inserted the record. The entire journey of each order is in the database."
-
----
-
-**[Back to Tab 1 — point to the Docker Containers panel]**
-
-> "All containers are still running. No crashes. This panel polls Docker automatically — completely without a terminal."
-
----
-
-**[Switch to Tab 4 — Jenkins]**
-
-> "And this is the CI/CD pipeline. Every time code is pushed to GitHub, Jenkins builds all three Docker images, deploys them to Kubernetes, runs a smoke test, and gives you the access URLs. Fully automated. That's the DevOps loop — write code, push, it's live."
-
----
-
-### Reset between demo runs
-
-```powershell
-# Wipe the orders table
+```bash
+# Clear the orders table
 docker exec flash-mysql mysql -uflashuser -pflashpass flashsale -e "TRUNCATE TABLE orders;"
 
 # Clear the Redis queue
 docker exec flash-redis redis-cli del orders
 ```
 
-Then reload the browser tab at http://localhost:8080 — the countdown resets automatically.
+Then reload <http://localhost:8080> — the countdown resets automatically.
 
 ---
 
-## 🔧 PART 6 — Troubleshooting
+## 🔁 CI/CD Pipeline
 
-### MySQL takes too long / worker crashes on startup
+Every `git push` to the `main` branch automatically triggers the Jenkins pipeline.
 
-MySQL takes 30–45 seconds to initialise on first run. Workers retry automatically with a delay. Wait 60 seconds — the loop resolves itself. Check with:
+### Pipeline stages
 
-```powershell
-docker compose logs worker
-# Should see: Retrying in 3s...  then  ✅ Table "orders" ready
+| Stage | What happens |
+|---|---|
+| **1 · Git Pull** | Jenkins checks out latest code, prints branch and commit |
+| **2 · Build Containers** | `docker-compose build` for order-api, worker, frontend, nginx |
+| **3 · Stop Old Stack** | `docker-compose down` — clean shutdown of previous containers |
+| **4 · Start New Stack** | `docker-compose up -d` with 3 API replicas + 2 workers |
+| **5 · Health Check** | Verifies Redis ping, MySQL ping, and API pod response |
+| **6 · Success** | Prints all access URLs in a summary box |
+
+### Trigger a deployment
+
+```bash
+# Make any change, then:
+cd ~/flash-sale-simulator
+git add .
+git commit -m "your change description"
+git push origin main
+# Jenkins picks it up within 2 minutes and runs all 6 stages
 ```
 
-### All requests fail (network error in log panel)
+### View pipeline in Jenkins
 
-API is not reachable. Check:
+Open <http://localhost:8090> → `flash-sale-pipeline` → click the latest build number → **Console Output** to watch it live.
 
-```powershell
-# Confirm nginx and order-api are running
-docker compose ps
+---
 
-# Test the API directly
-curl http://localhost:3000/health
-# Should return: {"status":"ok","pod":"..."}
+## 🎬 Demo Script
+
+### What to say at each step
+
+**[Countdown running — 10 to 0]**
+> "We're simulating a flash sale. 500 users are about to try to buy a product simultaneously. Behind this page: 3 API pods behind a load balancer, a Redis queue, 2 worker pods, and a MySQL database — all running in Docker containers on this machine."
+
+**[Click the button]**
+> "500 HTTP POST requests are firing right now — simultaneously from the browser."
+
+**[Point to Live Request Log]**
+> "Every line is one API response. Notice the pod name column — three different names rotating. That's load balancing. Kubernetes distributes requests round-robin across all 3 pods automatically."
+
+**[Point to Redis Queue gauge]**
+> "The queue depth jumped to 400+ instantly. The API doesn't write to MySQL — it pushes to Redis and returns in ~1ms. Redis absorbed the entire spike."
+
+**[Switch to Redis Commander tab]**
+> "The `orders` list in Redis. It filled up fast and is now draining as the workers process it."
+
+**[Back to frontend — point to MySQL panel]**
+> "MySQL row count — updating every 1.5 seconds, no terminal. The workers are inserting steadily. The table shows how many orders each API pod handled — load is distributed evenly."
+
+**[Switch to phpMyAdmin — press F5]**
+> "Actual rows in the database. Each row has the product, timestamp, which API pod received it, and which worker inserted it. Full traceability."
+
+**[Switch to Jenkins]**
+> "This pipeline deployed everything you just saw. One git push — Jenkins built the images, stopped the old containers, started new ones, ran health checks, and printed the URLs. Zero manual steps. That's CI/CD."
+
+---
+
+## 🏗️ Architecture
+
+```
+  ┌─────────────────────────────────────────────────────────────┐
+  │                     CI/CD Pipeline                          │
+  │   git push → Jenkins :8090 → docker build → compose up     │
+  └─────────────────────────────────────────────────────────────┘
+                             │
+                             ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │                  Docker Compose Stack                       │
+  │                                                             │
+  │  Browser ──→ flash-frontend :8080 (nginx static)           │
+  │                    │                                        │
+  │             flash-nginx :3000 (load balancer)               │
+  │          ┌──────────┼──────────┐                           │
+  │     api-1:3000  api-2:3000  api-3:3000   ← 3 replicas      │
+  │          └──────────┼──────────┘                           │
+  │                     │  rPush("orders")                      │
+  │              flash-redis :6379                              │
+  │              List: "orders"                                 │
+  │                     │  BLPOP                                │
+  │          ┌──────────┴──────────┐                           │
+  │      worker-1              worker-2   ← 2 replicas          │
+  │          └──────────┬──────────┘                           │
+  │                     │  INSERT                               │
+  │              flash-mysql :3306                              │
+  │              flashsale.orders                               │
+  │                                                             │
+  │  Monitoring:                                                │
+  │    flash-redis-ui  :8081  (Redis Commander)                 │
+  │    flash-phpmyadmin :8082 (phpMyAdmin)                      │
+  │    jenkins          :8090 (CI/CD)                           │
+  └─────────────────────────────────────────────────────────────┘
 ```
 
-If using Kubernetes, the frontend API URL needs updating — see Part 3 Step 2.
+### DevOps concepts demonstrated
 
-### Redis Commander shows blank / cannot connect
+| Concept | Where you see it |
+|---|---|
+| **Containerisation** | Every service runs in its own Docker container |
+| **Load Balancing** | 3 API pod names rotating in the request log |
+| **Queue Buffering** | Redis absorbs 500 requests, releases them steadily |
+| **Competing Consumers** | 2 workers race to drain the same Redis queue |
+| **DB Write Smoothing** | MySQL gets controlled inserts, not a simultaneous spike |
+| **Service Discovery** | Containers communicate by name (`redis`, `mysql`, `order-api`) |
+| **Health Checks** | Docker healthcheck on MySQL, Redis, and API containers |
+| **CI/CD Pipeline** | Jenkins 6-stage pipeline on every git push |
+| **Infrastructure as Code** | Everything reproducible from `docker-compose.yml` + `Jenkinsfile` |
+| **Observability** | Live dashboard, Redis UI, phpMyAdmin — no terminal needed |
 
-```powershell
-docker compose restart redis-commander
+---
+
+## 🧰 Useful Commands
+
+### Daily workflow
+
+```bash
+# Start everything
+cd ~/flash-sale-simulator
+docker start jenkins
+docker-compose up --scale order-api=3 --scale worker=2
+
+# Stop everything (keep data)
+docker-compose down && docker stop jenkins
+
+# Stop and wipe data
+docker-compose down -v && docker stop jenkins
 ```
+
+### Checking status
+
+```bash
+docker-compose ps                    # all container states
+docker-compose logs -f order-api     # API logs live
+docker-compose logs -f worker        # worker logs live
+docker ps                            # all running containers
+```
+
+### Database
+
+```bash
+# Count total orders
+docker exec flash-mysql mysql -uflashuser -pflashpass flashsale \
+  -e "SELECT COUNT(*) FROM orders;"
+
+# Orders per API pod (proves load balancing)
+docker exec flash-mysql mysql -uflashuser -pflashpass flashsale \
+  -e "SELECT server, COUNT(*) total FROM orders GROUP BY server ORDER BY total DESC;"
+
+# Orders per worker
+docker exec flash-mysql mysql -uflashuser -pflashpass flashsale \
+  -e "SELECT worker, COUNT(*) total FROM orders GROUP BY worker;"
+
+# Wipe all orders
+docker exec flash-mysql mysql -uflashuser -pflashpass flashsale \
+  -e "TRUNCATE TABLE orders;"
+```
+
+### Redis
+
+```bash
+docker exec flash-redis redis-cli llen orders    # queue depth
+docker exec flash-redis redis-cli del orders     # clear queue
+docker exec -it flash-redis redis-cli            # interactive shell
+```
+
+### Jenkins
+
+```bash
+docker start jenkins                             # start Jenkins
+docker stop jenkins                              # stop Jenkins
+docker restart jenkins                           # restart Jenkins
+docker logs jenkins                              # Jenkins startup logs
+docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### "fatal: detected dubious ownership" when running git
+
+You are in the wrong terminal — Windows PowerShell instead of WSL.
+
+**Fix:** Open Ubuntu from the Start menu. Run all commands from the WSL terminal where the prompt shows `username@DESKTOP:~$`
+
+---
+
+### MySQL takes too long to start / worker keeps restarting
+
+MySQL takes 30–45 seconds on first run. Workers auto-retry with a delay — this resolves itself.
+
+```bash
+docker-compose logs worker
+# Wait until you see:  ✅ Table "orders" ready
+```
+
+---
+
+### All 500 requests fail with network error
+
+The API is not reachable. Check:
+
+```bash
+docker-compose ps                        # all containers running?
+curl http://localhost:3000/health        # API responding?
+docker-compose logs nginx                # nginx errors?
+```
+
+---
+
+### Redis Commander shows blank page
+
+```bash
+docker-compose restart redis-commander
+```
+
+---
 
 ### phpMyAdmin shows "cannot connect to MySQL"
 
-MySQL is still starting. Wait 30 seconds, then refresh the phpMyAdmin tab.
+MySQL is still initialising. Wait 30 seconds and refresh.
 
-### Docker Containers panel on frontend shows "Docker socket not available"
+---
 
-The API container needs the Docker socket mounted. This is already in `docker-compose.yml`. If you edited the compose file, restore this under `order-api`:
+### Docker Containers panel shows "Docker socket not available"
+
+The Docker socket must be mounted into the API container. Check `docker-compose.yml` has this under `order-api`:
 
 ```yaml
 volumes:
   - /var/run/docker.sock:/var/run/docker.sock
 ```
 
-Then restart: `docker compose up -d --no-build`
+Restart after fixing:
 
-### "ImagePullBackOff" on Kubernetes pods
-
-You built images into your local Docker daemon, not Minikube's. Fix:
-
-```powershell
-minikube docker-env | Invoke-Expression
-docker build -t order-api:latest ./order-api
-docker build -t worker:latest    ./worker
-docker build -t frontend:latest  ./frontend
-kubectl rollout restart deployment/order-api deployment/worker deployment/frontend
-```
-
-### Jenkins — kubectl fails with "connection refused"
-
-The kubeconfig uses `127.0.0.1` which inside the Jenkins container refers to itself, not Minikube. Fix:
-
-```powershell
-# Get Minikube's actual container IP
-$ip = docker inspect minikube --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}"
-Write-Host "Replace server address with: $ip"
-
-# Open kubeconfig in notepad
-notepad "$env:USERPROFILE\.kube\config"
-# Change:  server: https://127.0.0.1:<PORT>
-# To:      server: https://<IP-ABOVE>:<PORT>
-# Keep the port the same
-
-# Restart Jenkins
-docker restart jenkins-flash
-```
-
-### Jenkins — Docker socket permission denied
-
-```powershell
-# Check the GID of the docker socket on your host
-docker run --rm alpine stat -c "%g" /var/run/docker.sock
-# Common: 0, 999, or 1001
-
-# Edit setup-jenkins.ps1 and change --group-add 999 to match your GID
-# Then re-run the script
-.\setup-jenkins.ps1
-```
-
-### Full reset — start completely clean
-
-```powershell
-docker compose down -v          # stop everything + delete MySQL volume
-docker compose up --build --scale order-api=3 --scale worker=2
+```bash
+docker-compose up -d --no-build
 ```
 
 ---
 
-## 🛠️ PART 7 — Useful Commands
+### Jenkins pipeline fails at health check
 
-### Docker Compose
+The stack is almost certainly running fine. Check manually:
 
-```powershell
-# Start
-docker compose up --build --scale order-api=3 --scale worker=2
-
-# Status
-docker compose ps
-
-# Logs for a specific service
-docker compose logs -f order-api
-docker compose logs -f worker
-
-# Stop (keep data)
-docker compose down
-
-# Stop + wipe MySQL volume
-docker compose down -v
-
-# Reset DB and queue (without restarting containers)
-docker exec flash-mysql mysql -uflashuser -pflashpass flashsale -e "TRUNCATE TABLE orders;"
-docker exec flash-redis redis-cli del orders
+```bash
+curl http://localhost:3000/health
+docker-compose ps
 ```
 
-### Kubernetes
+If the stack is up and the API responds — trigger a new build in Jenkins. The health check verifies containers directly.
 
-```powershell
-kubectl get pods                                     # list all pods
-kubectl get pods -w                                  # watch live
-kubectl describe pod <pod-name>                      # full detail + events
-kubectl delete pod <pod-name>                        # force restart (demo: show self-healing)
-kubectl scale deployment/worker --replicas=5         # scale live during demo
-kubectl logs -f deployment/order-api --prefix=true   # all API pod logs
-kubectl logs -f deployment/worker    --prefix=true   # all worker logs
-kubectl rollout restart deployment/order-api         # rolling restart
-```
+---
 
-### MySQL (Kubernetes)
+### Jenkins cannot connect to Docker (permission denied)
 
-```powershell
-# Row count
-kubectl exec deployment/mysql -- mysql -uflashuser -pflashpass flashsale -e "SELECT COUNT(*) FROM orders;"
-
-# Distribution by API pod (proof of load balancing)
-kubectl exec deployment/mysql -- mysql -uflashuser -pflashpass flashsale -e "SELECT server, COUNT(*) total FROM orders GROUP BY server ORDER BY total DESC;"
-
-# Clear for next run
-kubectl exec deployment/mysql -- mysql -uflashuser -pflashpass flashsale -e "TRUNCATE TABLE orders;"
-```
-
-### Redis (Kubernetes)
-
-```powershell
-kubectl exec deployment/redis -- redis-cli llen orders    # queue depth
-kubectl exec deployment/redis -- redis-cli del orders     # clear queue
+```bash
+# Fix socket permissions inside Jenkins
+docker exec -it --user root jenkins bash
+chmod 666 /var/run/docker.sock
+exit
 ```
 
 ---
 
-## 🏗️ PART 8 — Architecture
+### Port already in use on startup
 
-```
-  ┌──────────────────────────────────────────────────────────────────┐
-  │                     CI/CD Pipeline                               │
-  │   Code push → Jenkins :8090 → docker build → kubectl apply      │
-  └──────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
-  ┌──────────────────────────────────────────────────────────────────┐
-  │              Docker Compose / Kubernetes Cluster                 │
-  │                                                                  │
-  │   Browser (500 req) ──→ frontend :8080 / :30080                  │
-  │                               │                                  │
-  │                    nginx load balancer :3000                     │
-  │                    ┌──────┬──────┬──────┐                       │
-  │                 Pod-1  Pod-2  Pod-3   ← 3 replicas              │
-  │                 (order-api:3000 each)                            │
-  │                    └──────┴──┬───┘                              │
-  │                              │  rPush("orders")                 │
-  │                         redis :6379                             │
-  │                         List: "orders"                          │
-  │                              │  BLPOP                           │
-  │                 ┌────────────┴────────────┐                     │
-  │             Worker-1               Worker-2  ← 2 replicas       │
-  │                 └────────────┬────────────┘                     │
-  │                              │  INSERT                          │
-  │                         mysql :3306                             │
-  │                         flashsale.orders                        │
-  │                                                                  │
-  │   Monitoring (no terminal needed):                               │
-  │     frontend dashboard :8080   ← polls /stats every 1.5s        │
-  │     redis-commander    :8081   ← direct Redis UI                 │
-  │     phpmyadmin         :8082   ← direct MySQL UI                 │
-  └──────────────────────────────────────────────────────────────────┘
+```bash
+# Find what is using a port (example: 3000)
+sudo lsof -i :3000
+
+# Kill it or change the port in docker-compose.yml
 ```
 
-### Concepts demonstrated
+---
 
-| Concept                    | Where to see it                                        |
-| -------------------------- | ------------------------------------------------------ |
-| **Load Balancing**         | Frontend log pod column — 3 pod names rotating         |
-| **Queue Buffering**        | Redis queue spikes then drains steadily                |
-| **Competing Consumers**    | MySQL table — orders split across 2 workers            |
-| **DB Write Smoothing**     | MySQL gets steady inserts, not a 500-row spike         |
-| **Self-Healing**           | Kubernetes: delete a pod → it restarts automatically   |
-| **Horizontal Scaling**     | `kubectl scale deployment/worker --replicas=5`         |
-| **CI/CD Pipeline**         | Jenkins stages: clone → build → deploy → smoke test    |
-| **Infrastructure as Code** | Everything declarative in `k8s/*.yaml` + `Jenkinsfile` |
+### Full reset — completely clean start
+
+```bash
+docker-compose down -v                    # stop stack + wipe volumes
+docker stop jenkins                       # stop Jenkins
+docker ps                                 # verify empty
+cd ~/flash-sale-simulator
+docker-compose up --scale order-api=3 --scale worker=2
+```
+
+---
+
+## 🌱 Environment Variables
+
+All environment variables are set directly in `docker-compose.yml`. For reference:
+
+```env
+# MySQL
+MYSQL_ROOT_PASSWORD=rootpass
+MYSQL_DATABASE=flashsale
+MYSQL_USER=flashuser
+MYSQL_PASSWORD=flashpass
+
+# Redis
+REDIS_URL=redis://redis:6379
+
+# Order API
+PORT=3000
+MYSQL_HOST=mysql
+MYSQL_USER=flashuser
+MYSQL_PASS=flashpass
+MYSQL_DB=flashsale
+
+# Worker
+MYSQL_PORT=3306
+```
+
+No `.env` file is required. Everything is wired through Docker Compose service names.
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Make your changes
+4. Test with `docker-compose up --scale order-api=3 --scale worker=2`
+5. Commit: `git commit -m "Add your feature"`
+6. Push: `git push origin feature/your-feature`
+7. Open a Pull Request
+
+---
+
+## 📄 License
+
+MIT License — free to use, modify, and distribute.
+
+---
+
+## 👤 Author
+
+**Piyush** — [@piyushr6](https://github.com/piyushr6)
+
+Built as a live DevOps demonstration project showcasing containerisation, message queues, load balancing, and CI/CD pipelines in a realistic e-commerce scenario.
