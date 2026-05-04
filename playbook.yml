@@ -1,0 +1,145 @@
+---
+# ─────────────────────────────────────────────────────────────
+# Flash Sale Order Simulator — Ansible Setup Playbook
+# Automates complete environment setup on any Ubuntu machine
+#
+# Usage:
+#   ansible-playbook playbook.yml --ask-become-pass
+# ─────────────────────────────────────────────────────────────
+
+- name: Flash Sale — Full Environment Setup
+  hosts: localhost
+  connection: local
+  become: yes
+
+  vars:
+    repo_url: https://github.com/piyushr6/flash-sale-simulator.git
+    project_dir: "/home/{{ ansible_user_id }}/flash-sale-simulator"
+    compose_version: "v2.24.0"
+    jenkins_port: 8090
+
+  tasks:
+    # ── System packages ─────────────────────────────────────────
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required system packages
+      apt:
+        name:
+          - git
+          - curl
+          - wget
+          - docker.io
+        state: present
+
+    # ── Docker setup ────────────────────────────────────────────
+    - name: Check Docker is running (via Docker Desktop on WSL2)
+      command: docker info
+      register: docker_check
+      changed_when: false
+
+    - name: Confirm Docker is accessible
+      debug:
+        msg: "Docker is running via Docker Desktop — OK"
+      when: docker_check.rc == 0
+
+    - name: Add current user to docker group
+      user:
+        name: "{{ ansible_user_id }}"
+        groups: docker
+        append: yes
+
+    - name: Fix Docker socket permissions
+      file:
+        path: /var/run/docker.sock
+        mode: "0666"
+
+    # ── Docker Compose ───────────────────────────────────────────
+    - name: Install Docker Compose
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/{{ compose_version }}/docker-compose-linux-x86_64"
+        dest: /usr/local/bin/docker-compose
+        mode: "0755"
+
+    - name: Verify Docker Compose installed
+      command: docker-compose --version
+      register: compose_output
+
+    - name: Show Docker Compose version
+      debug:
+        msg: "{{ compose_output.stdout }}"
+
+    # ── Clone repository ─────────────────────────────────────────
+    - name: Clone flash sale repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ project_dir }}"
+        version: main
+        force: yes
+
+    - name: Show cloned files
+      command: ls "{{ project_dir }}"
+      register: ls_output
+
+    - name: Print project files
+      debug:
+        msg: "{{ ls_output.stdout_lines }}"
+
+    # ── Jenkins ──────────────────────────────────────────────────
+    - name: Create Jenkins data volume
+      command: docker volume create jenkins-data
+      ignore_errors: yes
+
+    - name: Start Jenkins container
+      command: >
+        docker run -d
+        --name jenkins
+        --restart unless-stopped
+        -p {{ jenkins_port }}:8080
+        -p 50000:50000
+        -v jenkins-data:/var/jenkins_home
+        -v /var/run/docker.sock:/var/run/docker.sock
+        jenkins/jenkins:lts-jdk17
+      ignore_errors: yes
+
+    - name: Wait for Jenkins to start
+      wait_for:
+        port: "{{ jenkins_port }}"
+        host: localhost
+        delay: 10
+        timeout: 90
+
+    # ── Install Docker CLI inside Jenkins ────────────────────────
+    - name: Install Docker CLI inside Jenkins
+      command: >
+        docker exec --user root jenkins
+        bash -c "apt-get update -y && apt-get install -y docker.io && chmod 666 /var/run/docker.sock"
+      ignore_errors: yes
+
+    - name: Install Docker Compose inside Jenkins
+      command: >
+        docker exec --user root jenkins
+        bash -c "curl -SL https://github.com/docker/compose/releases/download/{{ compose_version }}/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose"
+      ignore_errors: yes
+
+    # ── Final summary ────────────────────────────────────────────
+    - name: Get Jenkins admin password
+      command: docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+      register: jenkins_password
+      ignore_errors: yes
+
+    - name: Print setup summary
+      debug:
+        msg:
+          - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          - "  FLASH SALE — ENVIRONMENT READY"
+          - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          - "  Project: {{ project_dir }}"
+          - "  Jenkins: http://localhost:{{ jenkins_port }}"
+          - "  Jenkins password: {{ jenkins_password.stdout | default('check manually') }}"
+          - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          - "  Next: cd {{ project_dir }}"
+          - "  Then: docker-compose up --scale order-api=3 --scale worker=2"
+          - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
